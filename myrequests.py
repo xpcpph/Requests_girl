@@ -4,39 +4,32 @@ from lxml import html
 import selenium
 from selenium import webdriver
 from selenium import common
-
-'''
-    Repr.maxlevel --- 递归表示的深度限制，默认是6
-
-    Repr.maxdict
-    Repr.maxlist  --- 可向后两层
-    Repr.maxtuple
-    Repr.maxset
-    Repr.maxfrozenset
-    Repr.maxdeque
-    Repr.maxarray ----命名对象类型的条目数限制，maxdict是4，maxarray是5，其它是6
-
-    Repr.maxlong   ---- 表示一个整数最大字符数，默认40
-    Repr.maxstring ---- 表示一个字符串最大字符数，默认30
-    Repr.maxother  ---- 表示其他类型的最大字符数，默认20
-'''
 from web_state import *
 from Tool import *
 import html
-import bs4
 import sys
 from bs4 import BeautifulSoup
 from lxml import etree
 
+'''使用接口编程'''
+from abc import ABCMeta,abstractmethod
+
 com = True  # 测试用的,控制爬虫,爬起第一个主页的网址
+
+class __DownLoad(metaclass=ABCMeta):
+    @abstractmethod
+    def Load_Page(self, url: str) -> bytes:
+        pass
+    @abstractmethod
+    def Load_Video(self, url: str) -> bytes:
+        pass
+
 
 '''
     工具类:
         1.解压gzip压缩的网页
         2.字典通过值来获取键
 '''
-
-
 class Dict_MiXin():
     def to_dict(self):
         self.__contains_dict(self.__dict__)
@@ -58,7 +51,55 @@ class Dict_MiXin():
             return self.__contains_dict(value)
 
 
-class My_Requests(Dict_MiXin, Tool_MiXin, Web):
+class DownLoad(__DownLoad):
+
+    def __init__(self):
+        self.fname = ""
+        self.total = 10
+
+    # 实现下载进度条的函数
+    def __Loading_Progress_Bar__(self):
+        import tqdm
+        from tqdm.auto import trange
+        import time
+        # with trange(size,leave=False) as loding:
+        #     for i in range(size):
+        #         time.sleep(.5)
+        #         loding.update(1)
+        #         yield
+        with tqdm.tqdm(desc=self.fname,total=self.total,unit='KB',unit_divisor=1024,unit_scale=True) as bar:
+            for i in range(self.total):
+                time.sleep(.01)
+                bar.update(1)
+                yield
+
+    # 自定义下载图片函数
+    def Load_Page(self, url: str) -> bytes:
+        print(sys._getframe().f_code.co_name + "开始运行")
+        self.fname = "test"
+        response = requests.get(url)
+        self.total = int(int(response.headers.get('content-length',0))/1024)       #KB
+        if self.total < 1 :
+            self.total = 1
+        # print(self.total)
+        loding_bar = self.__Loading_Progress_Bar__()
+        for i in range(self.total):
+            next(loding_bar)
+        '''
+        response.content
+        - 类型：bytes
+        - 解码类型： 没有指定 
+        - 如何修改编码方式：response.content.deocde(“utf-8”)
+        '''
+        data = response.content  # 通过response.content来获取图片的数据流
+        return data
+
+    # 自定义视频下载函数
+    def Load_Video(self,url: str):
+        ...
+
+
+class My_Requests(Dict_MiXin, Tool_MiXin, Web,DownLoad):
 
     '''
     requests.get(‘https://github.com/timeline.json’)                                # GET请求
@@ -100,7 +141,7 @@ class My_Requests(Dict_MiXin, Tool_MiXin, Web):
         self.web_path = "./web.conf"#配置文件路径
         self.Config_Dict = dict()  # 配置字典
         self.page_con = 0       #
-        self.file_log = self.File_Log() #创建日志记录器
+        self.file_log = self.File_Log #创建日志记录器
         self.main_title = str()     #
         self.combination = {}       #
         self.start_urls = []  # 开始列表,记录的是主页上有多少页
@@ -455,18 +496,7 @@ class My_Requests(Dict_MiXin, Tool_MiXin, Web):
             self.combination[self.start_url][key][key2] = self.download_urls[key2]
         print("self.combination:", self.combination)
 
-    # 自定义下载图片函数
-    def Load_Page(self, url: str) -> bytes:
-        print(sys._getframe().f_code.co_name + "开始运行")
-        response = requests.get(url)
-        '''
-        response.content
-        - 类型：bytes
-        - 解码类型： 没有指定 
-        - 如何修改编码方式：response.content.deocde(“utf-8”)
-        '''
-        data = response.content     # 通过response.content来获取图片的数据流
-        return data
+
 
     '''
             :param stater:str   为图片还是json数据
@@ -625,30 +655,37 @@ class My_Requests(Dict_MiXin, Tool_MiXin, Web):
 
 
 def main():
-    re = My_Requests(url="https://www.meinvheisi.cn/ ", browser="Chrome")
-    # re.Save_Image("https://img.91cinema.cn/tjg/index.php?url=https://tjg.gzhuibei.com/a/1/37781/1.jpg",
-    #                     "[喵糖映画] VOL.254 @绮太郎 粉系水手萌妹",
-    #                     "[喵糖映画] VOL.254 绮太郎 粉系水手萌妹_1",
-    #                     "美女黑丝")
-    # re.Save_Json(
+    # do = DownLoad()
+    # d = do.Load_Page()
+    # re = My_Requests(browser="Chrome")
+    # re.Save_Image("https://www.umei.cc/meinvtupian/meinvxiezhen/12248_2.htm","美女","美女1","呢女")
+
+    # for i in range(10):
+    #     next(d)
+    re = My_Requests(browser="Chrome")
+    re.Save_Image("https://img.91cinema.cn/tjg/index.php?url=https://tjg.gzhuibei.com/a/1/37781/1.jpg",
+                        "[喵糖映画] VOL.254 @绮太郎 粉系水手萌妹",
+                        "[喵糖映画] VOL.254 绮太郎 粉系水手萌妹_1",
+                        "美女黑丝")
+    # # re.Save_Json(
+    # #     bytes("{\"[喵糖映画] VOL.254 @绮太郎 粉系水手萌妹\": {\"[喵糖映画] VOL.254 绮太郎 粉系水手萌妹_1\": \"https://img.91cinema.cn/tjg/index.php?url=https://tjg.gzhuibei.com/a/1/37781/1.jpg\",\
+    # #             \"[喵糖映画] VOL.254 绮太郎 粉系水手萌妹_2\": \"https://img.91cinema.cn/tjg/index.php?url=https://tjg.gzhuibei.com/a/1/37781/2.jpg\"}}",encoding="utf-8"
+    # #             ),
+    # #     "[喵糖映画] VOL.254 @绮太郎 粉系水手萌妹",
+    # #     "美女黑丝")
+    # re.Save_Cvs(
     #     bytes("{\"[喵糖映画] VOL.254 @绮太郎 粉系水手萌妹\": {\"[喵糖映画] VOL.254 绮太郎 粉系水手萌妹_1\": \"https://img.91cinema.cn/tjg/index.php?url=https://tjg.gzhuibei.com/a/1/37781/1.jpg\",\
-    #             \"[喵糖映画] VOL.254 绮太郎 粉系水手萌妹_2\": \"https://img.91cinema.cn/tjg/index.php?url=https://tjg.gzhuibei.com/a/1/37781/2.jpg\"}}",encoding="utf-8"
-    #             ),
+    #             \"[喵糖映画] VOL.254 绮太郎 粉系水手萌妹_2\": \"https://img.91cinema.cn/tjg/index.php?url=https://tjg.gzhuibei.com/a/1/37781/2.jpg\"}}", encoding="utf-8"
+    #           ),
     #     "[喵糖映画] VOL.254 @绮太郎 粉系水手萌妹",
     #     "美女黑丝")
-    re.Save_Cvs(
-        bytes("{\"[喵糖映画] VOL.254 @绮太郎 粉系水手萌妹\": {\"[喵糖映画] VOL.254 绮太郎 粉系水手萌妹_1\": \"https://img.91cinema.cn/tjg/index.php?url=https://tjg.gzhuibei.com/a/1/37781/1.jpg\",\
-                \"[喵糖映画] VOL.254 绮太郎 粉系水手萌妹_2\": \"https://img.91cinema.cn/tjg/index.php?url=https://tjg.gzhuibei.com/a/1/37781/2.jpg\"}}", encoding="utf-8"
-              ),
-        "[喵糖映画] VOL.254 @绮太郎 粉系水手萌妹",
-        "美女黑丝")
     # re.Start_Requests()
     # a = list("https://www.meinvheisi.cn/dalumeinv_19179/10")
     # t = re.test(a)
     # print(a)
     # print(t)
 
-    re.Save()
+    # re.Save()
 
 
 if __name__ == '__main__':

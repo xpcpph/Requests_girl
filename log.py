@@ -67,7 +67,7 @@ class Record_Log(object):
 
         return file_logger
     
-    @property
+    @property       #添加这个后可以直接使用属性名来使用,不需要加()来使用
     def File_Log(self):
         file_log = self.Log_Config('fileLogger')
         return file_log
@@ -80,12 +80,12 @@ class Record_Log(object):
 def main():
     cass = Record_Log()
     cass.File_State()
-    # file_log = cass.Log_Config('fileLogger')
-    # console_log = cass.Log_Config('fileAndConsole')
-    # file_log.debug("test")
-    # console_log.warning("test")
+    file_log = cass.Log_Config('fileLogger')
+    console_log = cass.Log_Config('fileAndConsole')
+    file_log.debug("test")
+    console_log.warning("test")
     # file_log = cass.File_Log()
-    # file_log.debug("test")
+    file_log.debug("test")
 
 if __name__ == "__main__":
     main()
