@@ -34,12 +34,10 @@ process.start() # the script will block here until the crawling is finished
     // 灰色(//)
 
 '''
-from log import *
-from web_state import *
-import sys
-import string
 import os
-import time
+import sys
+
+from web_state import *
 
 """
     需要安装:colorful coments
@@ -186,11 +184,11 @@ def main():
     # settings = get_project_settings()
     # print(settings)
     # print(settings.get(settings.get('BOT_NAME')))
-    com = Command()
-    url = com.Processing_Command()
-    # url = com.Find_Str("aaaaaa","b")
-    print(url)
-    # url = com.Find_Str("aaaaaa","a")
+    # com = Command()
+    # url = com.Processing_Command()
+    # # url = com.Find_Str("aaaaaa","b")
+    # print(url)
+    # # url = com.Find_Str("aaaaaa","a")
     # print(url)
     # file_log.debug("chenggong")
     # print(url)
@@ -207,6 +205,20 @@ def main():
     #         ...
     # except requests.exceptions.MissingSchema:
     #     file_log.critical("requests.exceptions.MissingSchema 没有url")
+
+    import test
+
+    a = test.__Requests(1, 2, 3, test="test", test2="test2")
+    b = test.__Requests(1, 2, 3, test="test", test2="test2")
+    print(len(a))
+    print(a.__dict__)
+    print(a["get"])
+    print(a.__dict__)
+    print(a.__sizeof__())
+    print(a.test2)
+    print(a == b)
+
+
 
 if __name__ == "__main__":
     main()

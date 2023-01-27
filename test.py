@@ -74,8 +74,6 @@
 # b()
 # c()
 
-import asyncio,time,Tool
-
 
 # async def testa(): 
 #     print('testa sleep start')
@@ -260,62 +258,184 @@ import asyncio,time,Tool
         ^生产者生产下载图片的url
         ^消费者消费下载图片的url
 """
-def consumer(): #消费者
-    print("[消费者] 开始")
-    r = '开始'
-    while True:
-        n = yield r
-        if not n:
-            print("n 是空的")
-            continue
-        print("[消费者] 消费者在消费 %s" % n)
-        r = "消费完了,请生产."
-
-url_list = ["http://www.baidu.com"]*5
-
-def Url_Get():
-    
-    
-    for i in range(0,len(url_list)):
-        print(f"len(url_list):{len(url_list)}")
-        
-        print(f"[url_list[{i}]]:",url_list[i])
-        yield url_list[i]
-        
-
-def Url_Append(url):
-    url_list.append(url)
-
-def producer(c): #生产者
-    temp = len(url_list)
-    print(f"temp:{temp}")
-    url1 = Url_Get()
-    start_value = c.send(None)
-    print(start_value)
-    """
-        这个生成器创建后不检索,只会在每次执行的时候来进行获取
-    """
-    Url_Append("http://www.zhihu.com")
-    if not temp == len(url_list) :
-        ValueError("url_list changed.")
-    ValueError("url_list changed.")
-    n = len(url_list)
-    while ((n) > 0):
-        n -= 1
-        url2 = url1.send(None)
-        if not url2:
-            print("url2 None")
-            continue
-        
-        print(f'[生产者] 生产了: {url2}' )
-        r = c.send(url2)
-        print(f'[生产者] 消费者返回: {r}')
 
 
-c = consumer()
-producer(c)
+# def consumer(): #消费者
+#     print("[消费者] 开始")
+#     r = '开始'
+#     while True:
+#         n = yield r
+#         if not n:
+#             print("n 是空的")
+#             continue
+#         print("[消费者] 消费者在消费 %s" % n)
+#         r = "消费完了,请生产."
+#
+# url_list = ["http://www.baidu.com"]*5
+#
+# def Url_Get():
+#
+#
+#     for i in range(0,len(url_list)):
+#         print(f"len(url_list):{len(url_list)}")
+#
+#         print(f"[url_list[{i}]]:",url_list[i])
+#         yield url_list[i]
+#
+#
+# def Url_Append(url):
+#     url_list.append(url)
+#
+# def producer(c): #生产者
+#     temp = len(url_list)
+#     print(f"temp:{temp}")
+#     url1 = Url_Get()
+#     start_value = c.send(None)
+#     print(start_value)
+#     """
+#         这个生成器创建后不检索,只会在每次执行的时候来进行获取
+#     """
+#     Url_Append("http://www.zhihu.com")
+#     if not temp == len(url_list) :
+#         ValueError("url_list changed.")
+#     ValueError("url_list changed.")
+#     n = len(url_list)
+#     while ((n) > 0):
+#         n -= 1
+#         url2 = url1.send(None)
+#         if not url2:
+#             print("url2 None")
+#             continue
+#
+#         print(f'[生产者] 生产了: {url2}' )
+#         r = c.send(url2)
+#         print(f'[生产者] 消费者返回: {r}')
+#
+#
+# c = consumer()
+# producer(c)
+#
+# from Tool import *
+#
+# @unittest_main
+# def main():...
 
-from Tool import *
+class __ReToolMiXin():
+    # 将字典转化为列表
+    def Dict_To_List(self, r_dict: dict):
+        r_list = list()
+        for key in r_dict:
+            r_list.append(key)
+            r_list.append(r_dict[key])
 
-@unittest_main
-def main():...
+    # 将数字来获取值
+    def Num_Get_Value(self, r_dict: dict, num: int):
+        r_list = list()
+        for key in r_dict:
+            r_list.append(key)
+        return r_dict[r_list[num]]
+
+
+'''爬取元类'''
+
+
+class __Requests(__ReToolMiXin):
+
+    def __new__(cls, *args, **kwargs):
+        return super().__new__(cls)
+
+    def __init__(self, *args, **kwargs):
+        # print("args:",args)
+        # print("kwargs:",kwargs)
+        self.__list__ = list(args)
+        self.object_name = ""
+        self.__name__ = self.__class__.__name__
+        self.kwargs = kwargs
+
+        for key, value in self.kwargs.items():
+            self.__dict__[key] = value
+        # self.id = locals()
+
+    # 可被当函数直接调用
+    def __call__(self, *args, **kwargs):
+        ...
+
+    def __len__(self):
+        return len(self.__dict__)
+
+    def __str__(self):
+        name = __name__ + "." + self.__name__
+        hex16 = "0x" + hex(id(self)).split("0x")[1].zfill(16)
+        info = '<{} __Requests at {}>'.format(name, hex16)
+        return info
+
+    def __repr__(self):
+        return "{} object_name:{}".format(self.__name__, self.object_name)
+
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return self.__dict__ == other.__dict__
+
+    def __hash__(self):
+        # print(f"使用了hash{hash(self)}")
+        return hash(self)
+
+    # def __sizeof__(self):
+    #     import sys
+    #     return sys.getsizeof(self)
+    # return self.__sizeof__()
+
+    def __setitem__(self, key, value):
+        self.__dict__[key] = value
+
+    def __missing__(self, key):
+        from faker import Faker
+        fa = Faker(locale="zh-CN")
+        self.__dict__[key] = fa.email()
+        return self.__dict__[key]
+
+    def __delitem__(self, key):
+        self.__dict__.pop(key)
+
+    def __getitem__(self, item):
+        try:
+            a = self.__dict__[item]
+        except:
+            v = self.__missing__(item)
+        return self.__dict__[item]
+
+
+# import sys
+p = dict()
+p.__sizeof__()
+
+
+#
+# a = __Requests(test=1,object_name="test")
+# b = __Requests(test=1,object_name="test")
+# # a.id = f'{# a}'.split('=')[0]
+# # t = [1,2,3,4,5,67]
+# # print(sys.getsizeof(t))
+# print(a)
+# print(a.__repr__())
+# print(dir(sys._getframe()))
+
+class mydict():
+
+    def __getitem__(self, item, *args, **kwargs):
+        try:
+            self.__dict__[item]
+        except:
+            self.__missing__(item, *args, **kwargs)
+            return self.__dict__[item]
+
+    def __missing__(self, key, *args, **kwargs):
+        self.__dict__[key] = "test1"
+        print("1.", args)
+        print("2.", kwargs)
+        return self.__dict__[key]
+
+# my = mydict()
+# my["tets"] = "test"
+# print(my)
+# print(my.tets)

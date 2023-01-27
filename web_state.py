@@ -3,9 +3,12 @@
 本模块关于web相关的,
 
 '''
-import requests
-from log import *
 import configparser
+
+import requests
+
+from log import *
+
 
 class Web(Record_Log):
     '''
@@ -199,8 +202,10 @@ class Web(Record_Log):
                 return True
             else:
                 self.file_log.info("{}是无法正常访问的".format(self.url))
+                return False
         except requests.exceptions.ConnectionError:
             self.file_log.critical("{} 链接超时".format(self.url))
+            return False
     '''
         配置文件节点内容增加时,需要改动
         更改:把返回的列表改为键值对形势(字典)

@@ -1,15 +1,17 @@
 # -*- coding: utf-8 -*-
 
-from lxml import html
-import selenium
-from selenium import webdriver
-from selenium import common
-from web_state import *
-from Tool import *
 import html
 import sys
+
+import selenium
 from bs4 import BeautifulSoup
 from lxml import etree
+from lxml import html
+from selenium import common
+from selenium import webdriver
+
+from Tool import *
+from web_state import *
 
 '''使用接口编程'''
 from abc import ABCMeta,abstractmethod
@@ -20,18 +22,93 @@ class __DownLoad(metaclass=ABCMeta):
     @abstractmethod
     def Load_Page(self, url: str) -> bytes:
         pass
+
     @abstractmethod
     def Load_Video(self, url: str) -> bytes:
         pass
 
 
-'''
-    工具类:
-        1.解压gzip压缩的网页
-        2.字典通过值来获取键
-'''
+class __ReToolMiXin():
+    # 将字典转化为列表
+    def Dict_To_List(self, r_dict: dict):
+        r_list = list()
+        for key in r_dict:
+            r_list.append(key)
+            r_list.append(r_dict[key])
+
+    # 将数字来获取值
+    def Num_Get_Value(self, r_dict: dict, num: int):
+        r_list = list()
+        for key in r_dict:
+            r_list.append(key)
+        return r_dict[r_list[num]]
+
+
+'''爬取元类'''
+
+
+class __Requests(__ReToolMiXin):
+
+    def __new__(cls, *args, **kwargs):
+        return super().__new__(cls)
+
+    def __init__(self, *args, **kwargs):
+        # print("args:",args)
+        # print("kwargs:",kwargs)
+        self.__list__ = list(args)
+        self.object_name = ""
+        self.__name__ = self.__class__.__name__
+        self.kwargs = kwargs
+        # self.id = locals()
+        for key, value in self.kwargs.items():
+            self.__dict__[key] = value
+
+    # 可被当函数直接调用
+    def __call__(self, *args, **kwargs):
+        ...
+
+    def __len__(self):
+        return len(self.__dict__)
+
+    def __str__(self):
+        name = __name__ + "." + self.__name__
+        hex16 = "0x" + hex(id(self)).split("0x")[1].zfill(16)
+        info = '<{} __Requests at {}>'.format(name, hex16)
+        return info
+
+    def __repr__(self):
+        return "{} object_name:{}".format(self.__name__, self.object_name)
+
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return self.__dict__ == other.__dict__
+
+    def __hash__(self):
+        return hash(self)
+
+    def __setitem__(self, key, value):
+        self.__dict__[key] = value
+
+    def __missing__(self, key, value):
+
+        self.__dict__[key] = value
+        return self.__dict__[key]
+
+    def __delitem__(self, key):
+        self.__dict__.pop(key)
+
+    def __getitem__(self, item):
+        try:
+            self.__dict__[item]
+        except:
+            from faker import Faker
+            fa = Faker(locale="zh-CN")
+            self.__missing__(item, fa.email())
+        return self.__dict__[item]
+
+
 class Dict_MiXin():
-    def to_dict(self):
+    def __to_dict(self):
         self.__contains_dict(self.__dict__)
 
     def __contains_dict(self, attr: dict):
@@ -42,7 +119,7 @@ class Dict_MiXin():
 
     def __contains_value(self, value):
         if isinstance(value, Dict_MiXin):
-            return value.to_dict()
+            return value.__to_dict()
         elif isinstance(value, dict):
             return self.__contains_dict(value)
         elif isinstance(value, list):
@@ -51,27 +128,30 @@ class Dict_MiXin():
             return self.__contains_dict(value)
 
 
-class DownLoad(__DownLoad):
+# 进度条类,实现进度条
+class Progress_Bar_MiXin():
 
     def __init__(self):
-        self.fname = ""
-        self.total = 10
+        self.fname = ""  # 下载精度条的名字
+        self.total = 10  #下载精度条的大小
 
     # 实现下载进度条的函数
     def __Loading_Progress_Bar__(self):
         import tqdm
-        from tqdm.auto import trange
         import time
         # with trange(size,leave=False) as loding:
         #     for i in range(size):
         #         time.sleep(.5)
         #         loding.update(1)
         #         yield
-        with tqdm.tqdm(desc=self.fname,total=self.total,unit='KB',unit_divisor=1024,unit_scale=True) as bar:
+        with tqdm.tqdm(desc=self.fname, total=self.total, unit='KB', unit_divisor=1024, unit_scale=True) as bar:
             for i in range(self.total):
                 time.sleep(.01)
                 bar.update(1)
                 yield
+
+
+class DownLoad(__DownLoad, Progress_Bar_MiXin):
 
     # 自定义下载图片函数
     def Load_Page(self, url: str) -> bytes:
@@ -99,7 +179,7 @@ class DownLoad(__DownLoad):
         ...
 
 
-class My_Requests(Dict_MiXin, Tool_MiXin, Web,DownLoad):
+class My_Requests(Dict_MiXin, Tool_MiXin, Web, DownLoad, __Requests):
 
     '''
     requests.get(‘https://github.com/timeline.json’)                                # GET请求
@@ -133,9 +213,16 @@ class My_Requests(Dict_MiXin, Tool_MiXin, Web,DownLoad):
 
     '''
 
-    def __init__(self, browser:str):
+    '''
+        args: 这其中可以直接传入多个网址
+        kwargs:这其中设置self中的__dict__的内容
+    '''
+
+    def __init__(self, browser: str = "Chrome", **kwargs):
         Tool_MiXin().__init__()
         # Web().__init__()
+        self.kwargs = kwargs
+        self.start_urled = list()
         self.start_url = str()  # 初始网址
         self.browser = browser  # 浏览器
         self.web_path = "./web.conf"#配置文件路径
@@ -147,7 +234,24 @@ class My_Requests(Dict_MiXin, Tool_MiXin, Web,DownLoad):
         self.start_urls = []  # 开始列表,记录的是主页上有多少页
         self.requests_url = {}  # 爬取字典使用的是前主题:爬取网页的形式
         self.download_urls = {}#
-        self.download_url = str()#
+        self.download_url = str()  #
+        self.__Lift_Up()  # 这个提前处理kwargs中的数据
+
+    # 预先处理args与kwargs
+    def __Lift_Up(self):
+        # if len(self.args) > 0:
+        #     for self.url in self.args:
+        #         if self.Web_state():
+        #             self.start_urled.append(self.url)
+
+        if len(self.kwargs) > 0:
+            for key, value in self.kwargs.items():
+                self.__missing__(key, value)
+        else:
+            return False
+
+        # print(self.args)
+        print(self.kwargs)
 
     # 获取web的配置
     def Get_Web_Config(self):
@@ -496,15 +600,12 @@ class My_Requests(Dict_MiXin, Tool_MiXin, Web,DownLoad):
             self.combination[self.start_url][key][key2] = self.download_urls[key2]
         print("self.combination:", self.combination)
 
-
-
     '''
             :param stater:str   为图片还是json数据
             :param subtitle:str 为三级目录名字
             :patam image_title:str 为图片名字
             :param picture_data:bytes 为图片数据
      '''
-
     # 保存图片
     def Save(self, stater: str, subtitle: str, image_title: str, picture_data: bytes):
         print(sys._getframe().f_code.co_name + "开始运行")
@@ -662,11 +763,13 @@ def main():
 
     # for i in range(10):
     #     next(d)
-    re = My_Requests(browser="Chrome")
-    re.Save_Image("https://img.91cinema.cn/tjg/index.php?url=https://tjg.gzhuibei.com/a/1/37781/1.jpg",
-                        "[喵糖映画] VOL.254 @绮太郎 粉系水手萌妹",
-                        "[喵糖映画] VOL.254 绮太郎 粉系水手萌妹_1",
-                        "美女黑丝")
+    re = My_Requests(browser="Chrome", ba="test", ka=2)
+    # re = Progress_Bar_MiXin()
+    print(re["browser"])
+    # re.Save_Image("https://img.91cinema.cn/tjg/index.php?url=https://tjg.gzhuibei.com/a/1/37781/1.jpg",
+    #                     "[喵糖映画] VOL.254 @绮太郎 粉系水手萌妹",
+    #                     "[喵糖映画] VOL.254 绮太郎 粉系水手萌妹_1",
+    #                     "美女黑丝")
     # # re.Save_Json(
     # #     bytes("{\"[喵糖映画] VOL.254 @绮太郎 粉系水手萌妹\": {\"[喵糖映画] VOL.254 绮太郎 粉系水手萌妹_1\": \"https://img.91cinema.cn/tjg/index.php?url=https://tjg.gzhuibei.com/a/1/37781/1.jpg\",\
     # #             \"[喵糖映画] VOL.254 绮太郎 粉系水手萌妹_2\": \"https://img.91cinema.cn/tjg/index.php?url=https://tjg.gzhuibei.com/a/1/37781/2.jpg\"}}",encoding="utf-8"

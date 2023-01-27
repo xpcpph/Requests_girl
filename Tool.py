@@ -1,15 +1,16 @@
 import os
+
+import chardet
+import gzip
+
 from log import *
-import chardet,gzip
+
+
 # import time
 
 
 class Tool_MiXin(Record_Log):
-    '''
-        检查文件是否可以使用
-    '''
-
-
+    #     检查文件是否可以使用
     def Information_Config_File(self,web_path):
         # 检查文件是否还存在
         file_log = self.File_Log()
@@ -54,6 +55,7 @@ class Tool_MiXin(Record_Log):
             html = data.decode(charset)
         return html
 
+    # 通过值来获取键
     def GetDictKey(self, mydict, value):
         keyList = []
         for k, v in mydict.items():
@@ -64,7 +66,6 @@ class Tool_MiXin(Record_Log):
 #装饰类  获取运行时间
 class Get_Run_Time():
     def __init__(self,function) -> None:
-       
         self.function = function
 
     def __call__(self, *args, **kwds):
@@ -74,24 +75,16 @@ class Get_Run_Time():
         end = time.time()
         print(f"本函数执行时间一共用时:{end - start}s")
 
-# class a(Tool_MiXin):
-#     def __init__(self):
-#         self.__init__ = super.__init__
-#
-#
-#     def jiagn(self,str):
-#         self.Information_Config_File(str)
-#
-# a1 = a()
-# a1.jiagn("./loguser.conf")
 
-# unittest.main()
-
+# 测试单元
 def unittest_main(cls):
     import unittest
     unittest.main()
     return cls
 
-# if __name__ == '__main__':
-#    a = Tool_MiXin()
-#    a.Information_Config_File("./aa")
+
+if __name__ == '__main__':
+    a = Tool_MiXin()
+    # a.Information_Config_File("./aa")
+
+    print(a)

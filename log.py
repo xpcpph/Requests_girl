@@ -7,7 +7,11 @@ __all__ = [
     "Record_Log",
 ]
 
-import os,stat,time,logging
+import logging
+import os
+import stat
+import time
+
 
 class Record_Log(object):
     def __init__(self):
@@ -47,9 +51,8 @@ class Record_Log(object):
         else:
             print("没有这个{0}文件".format(self.file_path))
 
-    def Log_Config(self,logname) -> logging:
+    def Log_Config(self, logname: str) -> logging:
         import logging.config
-        from logging import handlers
         # '读取日志配置文件'
         path = r'./loguser.conf'
         if os.path.exists(path):
