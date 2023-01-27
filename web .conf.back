@@ -1,0 +1,21 @@
+[root]#主要的一些配置
+;	mysql的账户名
+mysql_name=root	
+;	mysql的密码			
+mysql_passwd=123456
+
+;网址,网址的规则为http://www.taobao.com
+[http://www.meinvheisi.cn]	
+;	是否保存网址,默认为no(不保存)
+save_url=yes
+;	是否保存图片
+save_picture=yes
+;	是否保存视屏
+save_video=no
+;	保存路径,包括保存图片/和保存网址的路径
+save_path='./'			
+;	no不需要遵循,yes为循序必要的爬取规则
+rule_crawl=no			
+;	适应本网站的通配符
+wildcard_character=
+
