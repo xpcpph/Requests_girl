@@ -9,6 +9,7 @@ from lxml import etree
 from lxml import html
 from selenium import common
 from selenium import webdriver
+import json
 
 from Tool import *
 from web_state import *
@@ -16,7 +17,7 @@ from web_state import *
 '''使用接口编程'''
 from abc import ABCMeta,abstractmethod
 
-com = True  # 测试用的,控制爬虫,爬起第一个主页的网址
+if_requests_one_page = True  # 测试用的,控制爬虫,爬起第一个主页的网址
 
 class __DownLoad(metaclass=ABCMeta):
     @abstractmethod
@@ -28,7 +29,7 @@ class __DownLoad(metaclass=ABCMeta):
         pass
 
 
-class __ReToolMiXin():
+class __Requests_Tool_MiXin():
     # 将字典转化为列表
     def Dict_To_List(self, r_dict: dict):
         r_list = list()
@@ -45,9 +46,7 @@ class __ReToolMiXin():
 
 
 '''爬取元类'''
-
-
-class __Requests(__ReToolMiXin):
+class __Requests(__Requests_Tool_MiXin):
 
     def __new__(cls, *args, **kwargs):
         return super().__new__(cls)
@@ -144,7 +143,7 @@ class Progress_Bar_MiXin():
         #         time.sleep(.5)
         #         loding.update(1)
         #         yield
-        with tqdm.tqdm(desc=self.fname, total=self.total, unit='KB', unit_divisor=1024, unit_scale=True) as bar:
+        with tqdm.tqdm(desc=self.fname, total=self.total, unit='KB', unit_divisor=1024, unit_scale=True, leave=False) as bar:
             for i in range(self.total):
                 time.sleep(.01)
                 bar.update(1)
@@ -156,7 +155,7 @@ class DownLoad(__DownLoad, Progress_Bar_MiXin):
     # 自定义下载图片函数
     def Load_Page(self, url: str) -> bytes:
         print(sys._getframe().f_code.co_name + "开始运行")
-        self.fname = "test"
+        # self.fname = "test"
         response = requests.get(url)
         self.total = int(int(response.headers.get('content-length',0))/1024)       #KB
         if self.total < 1 :
@@ -178,6 +177,15 @@ class DownLoad(__DownLoad, Progress_Bar_MiXin):
     def Load_Video(self,url: str):
         ...
 
+
+class Deal_With_file_DB():
+    def Return_FIle_DB(self,Write_DB:dict): #tinydb
+        import tinydb
+        tdb = tinydb.TinyDB('test.db')
+        # tdb.insert(Write_DB)  #
+        # results = tdb.search(tinydb.Query().key == 'zhangsan')  # 结果数组
+        # print(results)
+        return tdb
 
 class My_Requests(Dict_MiXin, Tool_MiXin, Web, DownLoad, __Requests):
 
@@ -223,7 +231,7 @@ class My_Requests(Dict_MiXin, Tool_MiXin, Web, DownLoad, __Requests):
         # Web().__init__()
         self.kwargs = kwargs
         self.start_urled = list()
-        self.start_url = str()  # 初始网址
+        self.start_url = "http://www.taobao.com"  # 初始网址
         self.browser = browser  # 浏览器
         self.web_path = "./web.conf"#配置文件路径
         self.Config_Dict = dict()  # 配置字典
@@ -236,6 +244,10 @@ class My_Requests(Dict_MiXin, Tool_MiXin, Web, DownLoad, __Requests):
         self.download_urls = {}#
         self.download_url = str()  #
         self.__Lift_Up()  # 这个提前处理kwargs中的数据
+        self.executive_function = str()     #保存方法名的
+
+    def __call__(self, *args, **kwargs):
+        return self.Start_Requests()
 
     # 预先处理args与kwargs
     def __Lift_Up(self):
@@ -253,15 +265,27 @@ class My_Requests(Dict_MiXin, Tool_MiXin, Web, DownLoad, __Requests):
         # print(self.args)
         print(self.kwargs)
 
+    #打印当前运行的方法
+    def Print_Executive_Function(self):
+        print(self.executive_function + "开始运行")
+
+    #当遇到WebDriverException时调用,打印日志并记录
+    def Web_Driver_Exception(self):
+        self.file_log.critical(f"被{self.executive_function}调用,退出当前程序.")
+        exit(1)
+
     # 获取web的配置
     def Get_Web_Config(self):
+        self.executive_function = sys._getframe().f_code.co_name
+        self.Print_Executive_Function()
         temp_dict = Web(self.start_url)
         # print(temp_dict.Web_Create_Dict())
         self.Config_Dict = temp_dict.Web_Create_Dict().copy()
 
     def Get_Url(self):
         # print("这里运行吗")
-        print(sys._getframe().f_code.co_name + "开始运行")
+        self.executive_function = sys._getframe().f_code.co_name
+        self.Print_Executive_Function()
         config = configparser.ConfigParser()
         # config.sections()
         config.read(self.web_path, encoding='utf-8')  # 读取配置文件
@@ -282,6 +306,8 @@ class My_Requests(Dict_MiXin, Tool_MiXin, Web, DownLoad, __Requests):
 
     # 删除javascript
     def Remove_Javascript(self, re) -> str:
+        self.executive_function = sys._getframe().f_code.co_name
+        self.Print_Executive_Function()
         tree = html.fromstring(re)
         # print(tree)
         ele = tree.xpath('//script | //noscript | //style | //link')
@@ -298,6 +324,8 @@ class My_Requests(Dict_MiXin, Tool_MiXin, Web, DownLoad, __Requests):
 
     # 将html字符替换为实体字符
     def Replace_Char_Entity(self, htmlStr: str) -> str:
+        self.executive_function = sys._getframe().f_code.co_name
+        self.Print_Executive_Function()
         import re
         '''
           替换html中常用的字符实体
@@ -329,7 +357,8 @@ class My_Requests(Dict_MiXin, Tool_MiXin, Web, DownLoad, __Requests):
 
     # 去除无意义的数据的
     def Html_Tag_Con(self, html: str) -> str:
-        print(sys._getframe().f_code.co_name + "开始运行")
+        self.executive_function = sys._getframe().f_code.co_name
+        self.Print_Executive_Function()
         import re
         """
             正则表达式匹配规则
@@ -391,7 +420,8 @@ class My_Requests(Dict_MiXin, Tool_MiXin, Web, DownLoad, __Requests):
 
     # 获取爬取字典的
     def Get_Request_Url(self, html: list, label: str, attribute_href: str, attribute_title: str) -> dict:
-        print(sys._getframe().f_code.co_name + "开始运行")
+        self.executive_function = sys._getframe().f_code.co_name
+        self.Print_Executive_Function()
         __temp = {}
         for i in html:
             href = etree.tostring(i, encoding='utf-8').decode('utf-8')
@@ -408,6 +438,8 @@ class My_Requests(Dict_MiXin, Tool_MiXin, Web, DownLoad, __Requests):
 
     # 获取最后一个匹配的索引
     def last(self, list: list, str):
+        self.executive_function = sys._getframe().f_code.co_name
+        self.Print_Executive_Function()
         _ = []
         for i in range(len(list)-1, 0, -1):
             _.append(list[i])
@@ -415,7 +447,8 @@ class My_Requests(Dict_MiXin, Tool_MiXin, Web, DownLoad, __Requests):
 
     # 获取图片页面后面网址
     def Get_Request_Url_List(self, html: list, label: str, attribute_href: str) -> list:
-        print(sys._getframe().f_code.co_name + "开始运行")
+        self.executive_function = sys._getframe().f_code.co_name
+        self.Print_Executive_Function()
         __temp = []
         for i in html:
             href = etree.tostring(i, encoding='utf-8').decode('utf-8')
@@ -451,7 +484,8 @@ class My_Requests(Dict_MiXin, Tool_MiXin, Web, DownLoad, __Requests):
 
     # 获取页面网址的
     def Get_Tab_Page(self, html: list):
-        print(sys._getframe().f_code.co_name + "开始运行")
+        self.executive_function = sys._getframe().f_code.co_name
+        self.Print_Executive_Function()
         # html = BeautifulSoup(html, "html.parser")  # 文档对象
         for i in html:
             href = etree.tostring(i, encoding='utf-8').decode('utf-8')
@@ -464,7 +498,8 @@ class My_Requests(Dict_MiXin, Tool_MiXin, Web, DownLoad, __Requests):
 
     # 获取浏览器代理的
     def Get_Browser_Model(self) -> str:
-        print(sys._getframe().f_code.co_name + "开始运行")
+        self.executive_function = sys._getframe().f_code.co_name
+        self.Print_Executive_Function()
         if self.browser == "QQ浏览器":  # android QQ浏览器
             model = 'user-agent="MQQBrowser/26 Mozilla/5.0 (Linux; U; Android 2.3.7; zh-cn; MB200 Build/GRJ22; CyanogenMod-7) AppleWebKit/533.1 (KHTML, like Gecko) Version/4.0 Mobile Safari/533.1"'
         elif self.browser == "Edge":  # Edge
@@ -476,11 +511,13 @@ class My_Requests(Dict_MiXin, Tool_MiXin, Web, DownLoad, __Requests):
 
         else:  # Edge
             model = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36 Edg/107.0.1418.62"
-
+        self.file_log.debug(f"当前使用的浏览器为:{self.browser}")
         return model
 
     # 创建网络连接
     def Chrom_Options(self):
+        self.executive_function = sys._getframe().f_code.co_name
+        self.Print_Executive_Function()
         opt = webdriver.ChromeOptions()
         opt.headless = True  # 开启无界面版的  windows/Linus  都可以使用
         opt.add_argument(self.Get_Browser_Model())
@@ -490,8 +527,9 @@ class My_Requests(Dict_MiXin, Tool_MiXin, Web, DownLoad, __Requests):
 
     # 获取主网址
     def Request_Prepare(self):
-        print(sys._getframe().f_code.co_name + "开始运行")
-        if com == True:
+        self.executive_function = sys._getframe().f_code.co_name
+        self.Print_Executive_Function()
+        if if_requests_one_page == True:
             test = 235
         chrome = self.Chrom_Options()
         try:
@@ -524,13 +562,15 @@ class My_Requests(Dict_MiXin, Tool_MiXin, Web, DownLoad, __Requests):
                 self.start_urls.append(_ + str(i))
             print("主网页爬取列表:", self.start_urls)
         except selenium.common.exceptions.WebDriverException:
+            self.Web_Driver_Exception()
             self.file_log.critical("网络异常")
         finally:
             chrome.close()
 
     # 获取主页下级页面网址
     def Lower_Page(self):
-        print(sys._getframe().f_code.co_name+"开始运行")
+        self.executive_function = sys._getframe().f_code.co_name
+        self.Print_Executive_Function()
         chrome = self.Chrom_Options()
         try:
             for url in self.start_urls:
@@ -544,13 +584,15 @@ class My_Requests(Dict_MiXin, Tool_MiXin, Web, DownLoad, __Requests):
                 print("self.requests_url:", self.requests_url)
                 self.start_urls.remove(url)
         except selenium.common.exceptions.WebDriverException:
+            self.Web_Driver_Exception()
             self.file_log.critical("网络异常")
         finally:
             chrome.close()
 
     # 获取图片网址        未完成
     def Wildcard_Character(self):
-        print(sys._getframe().f_code.co_name + "开始运行")
+        self.executive_function = sys._getframe().f_code.co_name
+        self.Print_Executive_Function()
         chrome = self.Chrom_Options()
         try:
             for key in self.requests_url:
@@ -587,6 +629,7 @@ class My_Requests(Dict_MiXin, Tool_MiXin, Web, DownLoad, __Requests):
                 # finally:
                 #     print("程序没运行")
         except selenium.common.exceptions.WebDriverException:
+            self.Web_Driver_Exception()
             self.file_log.critical("网络异常")
         finally:
             chrome.close()
@@ -594,7 +637,8 @@ class My_Requests(Dict_MiXin, Tool_MiXin, Web, DownLoad, __Requests):
     # 将拼成json类型的
     def Dict_Combination(self, key):
         print("self.download_urls:", self.download_urls)
-        print(sys._getframe().f_code.co_name + "开始运行")
+        self.executive_function = sys._getframe().f_code.co_name
+        self.Print_Executive_Function()
         for key2 in self.download_urls:
             # print("Dict_Combination",self.download_urls[key2])
             self.combination[self.start_url][key][key2] = self.download_urls[key2]
@@ -608,7 +652,8 @@ class My_Requests(Dict_MiXin, Tool_MiXin, Web, DownLoad, __Requests):
      '''
     # 保存图片
     def Save(self, stater: str, subtitle: str, image_title: str, picture_data: bytes):
-        print(sys._getframe().f_code.co_name + "开始运行")
+        self.executive_function = sys._getframe().f_code.co_name
+        self.Print_Executive_Function()
         download_main_path = os.path.join(
             "./", self.main_title)  # 主目录的标题  ./美女黑丝
         if os.path.isdir(download_main_path):
@@ -682,8 +727,11 @@ class My_Requests(Dict_MiXin, Tool_MiXin, Web, DownLoad, __Requests):
             os.mkdir(download_main_path)
             self.Save(stater, subtitle, image_title, picture_data)
 
+    # self.Save("[url]", "[秀人网XiuRen] No.2740 @王雨纯 -翘臀美腿销魂诱惑写真","[秀人XiuRen] No.2740 王雨纯_1")
     # 图片处理   可多线程处理
     def Save_Image(self, download_url: str, subtitle: str, image_title: str, main_title: str):
+        self.executive_function = sys._getframe().f_code.co_name
+        self.Print_Executive_Function()
         # self.download_url = 'https://img.91cinema.cn/tjg/index.php?url=https://tjg.gzhuibei.com/a/1/41493/2.jpg'
         self.download_url = download_url
         # self.main_title = "美女黑丝"
@@ -694,6 +742,8 @@ class My_Requests(Dict_MiXin, Tool_MiXin, Web, DownLoad, __Requests):
 
     # json处理   可多线程处理
     def Save_Json(self, json_bytes: bytes, secondary_website_url: str, main_title: str):
+        self.executive_function = sys._getframe().f_code.co_name
+        self.Print_Executive_Function()
         self.main_title = main_title
         picture_data = json_bytes
         # self.Save("json", "[秀人网XiuRen] No.2740 @王雨纯 -翘臀美腿销魂诱惑写真","", picture_data)
@@ -701,33 +751,69 @@ class My_Requests(Dict_MiXin, Tool_MiXin, Web, DownLoad, __Requests):
 
     # json处理   可多线程处理
     def Save_Cvs(self, cvs_bytes: bytes, secondary_website_url: str, main_title: str):
+        self.executive_function = sys._getframe().f_code.co_name
+        self.Print_Executive_Function()
         self.main_title = main_title
         picture_data = cvs_bytes
         # self.Save("json", "[秀人网XiuRen] No.2740 @王雨纯 -翘臀美腿销魂诱惑写真","", picture_data)
         self.Save("cvs", secondary_website_url, "", picture_data)
 
+    #触发垃圾回收
+    def Whether_to_Reclaim_Memory(self,name):
+        import gc
+        # 这里是删除变量
+        # del (exec('self.{}'.format(name)))[0]
+
+        # 这是触发python的垃圾回收
+        gc.collect()
+
+    #检测存储数据库中是否存在下载或者爬取过的网址
+    def Presence_Detection_Url(self):
+        ...
+
+    #保存图片迭代器
+    def Page_Save(self):
+        self.total = len(self.combination)
+        for key_1 in self.combination:      #获取到的key_1为网站网址
+            for key_2 in self.combination[key_1]:          #获取到的key_2为本图集的名字
+                for key_3 in self.combination[key_1][key_2]:      #获取到的key_3为图片名字
+                    # print("key_3:"+key_3)
+                    # print("value_3:" + value_3)
+                    self.fname = key_3
+                    self.Save_Image(self.combination[key_1][key_2][key_3],key_2,key_3,"美女黑丝")
+
     # 开始爬取控制函数
     def Start_Requests(self):
-        print(sys._getframe().f_code.co_name + "开始运行")
-        # from selenium.webdriver.chrome import options
-        self.combination[self.start_url] = {}
-        self.Get_Web_Config()  # 网站各种配置配置
-        self.Request_Prepare()  # 获取主网址
-        self.Lower_Page()  # 获取下级页面网址
-        for key1 in self.requests_url:
-            if self.requests_url[key1] == None:
-                print("self.requests_url[key1]:", "key:{}这是空".format(key1))
-                break
-            self.combination[self.start_url][key1] = {}
-        self.Wildcard_Character()
-        # chrome = self.Chrom_Options()
         try:
+            # self.executive_function = sys._getframe().f_code.co_name
+            # self.Print_Executive_Function()
+            # # from selenium.webdriver.chrome import options
+            # self.combination[self.start_url] = {}
+            # self.Get_Web_Config()  # 网站各种配置配置
+            # self.Request_Prepare()  # 获取主网址
+            # self.Lower_Page()  # 获取下级页面网址
+            # for key1 in self.requests_url:
+            #     if self.requests_url[key1] == None:
+            #         print("self.requests_url[key1]:", "key:{}这是空".format(key1))
+            #         break
+            #     self.combination[self.start_url][key1] = {}
+            # self.Wildcard_Character()
+            with open("./test.json","r",encoding="utf-8") as fp:
+                self.combination = fp.read()
+                self.combination = eval(self.combination)
+                print(self.combination)
+                print(type(self.combination))
+                self.Page_Save()
+
+            # chrome = self.Chrom_Options()
+
             # print(self.start_urls)
             # print(self.combination)
             # self.Save_Image()
-            pass
         except selenium.common.exceptions.WebDriverException:
+            self.Web_Driver_Exception()
             self.file_log.critical("网络异常")
+            return False
         finally:
             # chrome.close()
             with open("./test.json", "w", encoding="utf-8") as f:
@@ -765,6 +851,7 @@ def main():
     #     next(d)
     re = My_Requests(browser="Chrome", ba="test", ka=2)
     # re = Progress_Bar_MiXin()
+    print(re())
     print(re["browser"])
     # re.Save_Image("https://img.91cinema.cn/tjg/index.php?url=https://tjg.gzhuibei.com/a/1/37781/1.jpg",
     #                     "[喵糖映画] VOL.254 @绮太郎 粉系水手萌妹",
